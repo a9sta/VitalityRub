@@ -210,6 +210,7 @@ export function courseHub(ctx) {
         S.collectionPage({ url: `${siteUrl}/course/`, siteUrl, title: title.page(`코스 ${courses.length}가지 출장마사지 홈타이`), desc: clampDesc(`코스 ${courses.length}가지를 세기와 길이, 기름 여부로 한자리에 모았습니다.`), listId: `${siteUrl}/course/#list` }),
         S.itemList(`${siteUrl}/course/#list`, '코스', courses.map((c) => ({ name: c.ko, url: `${siteUrl}/course/${c.slug}/` }))),
         S.aggregateOffer(`${siteUrl}/course/`, courses, cfg),
+        S.service({ siteUrl, url: `${siteUrl}/course/`, cfg, name: `${cfg.brand.ko} 코스 ${courses.length}가지`, desc: clampDesc(`세기와 길이, 기름 여부로 갈라 놓은 출장마사지 홈타이 코스 ${courses.length}가지.`), areaServed: { '@type': 'Country', name: '대한민국' }, courses }),
         S.faqPage(`${siteUrl}/course/`, qa),
       ],
     }),
@@ -390,6 +391,7 @@ export function companyPage(ctx) {
       body,
       pageKind: 'company',
       crumbs: [{ name: '처음', url: `${siteUrl}/` }, { name: '소개', url: `${siteUrl}/company/` }],
+      jsonld: [S.aboutPage({ url: `${siteUrl}/company/`, siteUrl, title: title.page(`${cfg.brand.ko}은 어떤 곳인가`), desc: clampDesc(`${cfg.brand.ko}이 하는 일과 하지 않는 일, 누운 방향을 재는 방식.`) })],
     }),
   };
 }

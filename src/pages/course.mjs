@@ -1,8 +1,8 @@
 import { layout, slab } from '../lib/html.mjs';
-import { esc, hash, won, josa, km2 } from '../lib/util.mjs';
+import { esc, hash, won, josa, km2, shuffle } from '../lib/util.mjs';
 import { title, desc, clampDesc } from '../lib/seo.mjs';
 import * as S from '../lib/schema.mjs';
-import { factTable, faqBlock, stepTrack, stepSet, noticeBlock, pingBand, courseList, topicLinks, courseTopic } from '../lib/blocks.mjs';
+import { factTable, faqBlock, stepTrack, stepSet, noticeBlock, pingBand, courseList, topicLinks, courseTopic, guIndex } from '../lib/blocks.mjs';
 import { SEC, ANCHOR, COURSE_ANCHOR, DOC_LINKS, axisTalk } from '../content/copy.mjs';
 
 const at = (h, arr, slot = 0) => arr[parseInt(h.substr((slot * 3) % 29, 3), 16) % arr.length];
@@ -74,12 +74,15 @@ export function coursePage(ctx, c) {
   for (const r of regions) for (const g of r.gu) guList.push({ label: `${r.name} ${g.name}`, href: `/${r.slug}/${g.slug}/` });
   const others2 = courses.filter((x) => x.slug !== c.slug).map((x) => ({ label: x.ko, href: `/course/${x.slug}/` }));
   const steps = stepSet(seed);
+  const deepAll = [];
+  for (const r of regions) if (r.main) for (const g of r.gu) for (const x of g.spots) deepAll.push({ label: `${g.name} ${x.name}`, href: `/${r.slug}/${g.slug}/${x.slug}/` });
   const topics = topicLinks([
     { label: `${c.ko}${josa(c.ko, '을/를')} 지역에서`, items: bySido, anchor: COURSE_ANCHOR },
     { label: '다른 코스', items: others2, anchor: COURSE_ANCHOR },
     { label: '시군구로 바로', items: guList, pick: 18, anchor: ANCHOR },
+    { label: '동 이름으로 바로', items: deepAll, pick: 16, anchor: ANCHOR },
     { label: '먼저 읽을 것', items: DOC_LINKS },
-  ], seed, '06', esc(at(h, SEC.topicHead, 8)), esc(at(h, SEC.topicSub, 3)));
+  ], seed, '07', esc(at(h, SEC.topicHead, 8)), esc(at(h, SEC.topicSub, 3)));
 
   const body = [
     open,
@@ -140,9 +143,17 @@ export function sidoCoursePage(ctx, sd, c) {
     `${sd.name} 어느 자리에서 부르셔도 ${c.ko}에 담기는 내용은 같습니다. 달라지는 것은 닿기까지 걸리는 시간뿐입니다.`,
     `${sd.name}에서 오는 ${c.ko} 문의도 같은 번호에서 받습니다. ${c.min}분 ${won(c.price)}원입니다.`,
   ];
-  const second = sd.main
-    ? `${sd.name}에서는 동 ${sd.spotCount}칸이 저마다 화면을 가집니다. 사시는 칸을 누르면 그 땅이 어느 쪽으로 누웠는지, 긴 변이 몇 미터인지가 나옵니다. 번지를 어디까지 불러 드려야 하는지 가늠하실 때 쓰시면 됩니다.`
-    : `${sd.name}${josa(sd.name, '은/는')} 시군구 ${sd.gu.length}곳에서 층을 끊었습니다. 동 이름은 그 안 목록에 있으니 통화에서 그대로 불러 주시면 됩니다.`;
+  const secondMain = [
+    `${sd.name}에서는 동 ${sd.spotCount}칸이 저마다 화면을 가집니다. 사시는 칸을 누르면 그 땅이 어느 쪽으로 누웠는지, 긴 변이 몇 미터인지가 나옵니다.`,
+    `${sd.name} 동 ${sd.spotCount}칸 가운데 가장 길쭉한 곳은 ${sd.longSpot}로 ${sd.longRatio}배입니다. 길쭉한 칸일수록 번지를 끝까지 주셔야 합니다.`,
+    `${sd.name}의 길쭉함 평균은 ${sd.avgRatio}이고 가장 네모난 칸은 ${sd.boxSpot}입니다. 칸마다 들어가는 변이 달라 접수에서 한 번 더 여쭙습니다.`,
+  ];
+  const secondSub = [
+    `${sd.name}${josa(sd.name, '은/는')} 시군구 ${sd.gu.length}곳에서 층을 끊었고, 동 칸은 각 시군구 화면 안에서 찾으시면 됩니다.`,
+    `${sd.name}에서 받는 땅은 ${km2(sd.area)}이고 평균 결은 ${sd.leanAxis}입니다. 시군구 ${sd.gu.length}곳까지 적어 두었습니다.`,
+    `${sd.name}의 행정동 ${sd.dongCount}칸 이름은 시군구 화면마다 올려 두었습니다. 통화에서 그 이름을 불러 주시면 됩니다.`,
+  ];
+  const second = at(h, sd.main ? secondMain : secondSub, 6);
 
   const open = `<div class="lede">
   <p>${esc(at(h, openLines, 0))}</p>
@@ -163,7 +174,7 @@ export function sidoCoursePage(ctx, sd, c) {
       ['받는 땅', km2(sd.area)],
     ]), esc(at(h, SEC.factSub, 7)), '01');
 
-  const { html: faqHtml, qa } = faqBlock(seed, fc, 4, '03');
+  const { html: faqHtml, qa } = faqBlock(seed, fc, 4, '05');
 
   /* ★시군구가 한두 곳뿐인 서브 시도는 이것만으로 링크가 스무 개가 안 된다.
      다른 시도의 같은 코스 쪽을 함께 걸어 얇은 쪽이 생기지 않게 한다. */
@@ -178,18 +189,40 @@ export function sidoCoursePage(ctx, sd, c) {
   const topics = topicLinks([
     { label: `${sd.name} 다른 코스`, items: otherCourse, anchor: COURSE_ANCHOR },
     { label: `${c.ko}${josa(c.ko, '을/를')} 다른 지역에서`, items: sameCourse, anchor: COURSE_ANCHOR },
+    { label: '코스 한 장씩', items: courses.map((x) => ({ label: x.ko, href: `/course/${x.slug}/` })), anchor: COURSE_ANCHOR },
     { label: `${sd.name} 시군구`, items: guHere, pick: 16, anchor: ANCHOR },
     ...(deepHere.length ? [{ label: `${sd.name} 동으로 바로`, items: deepHere, pick: 14, anchor: ANCHOR }] : []),
     { label: '먼저 읽을 것', items: DOC_LINKS },
-  ], seed, '05', esc(at(h, SEC.topicHead, 8)), esc(at(h, SEC.topicSub, 3)));
+  ], seed, '06', esc(at(h, SEC.topicHead, 8)), esc(at(h, SEC.topicSub, 3)));
+
+  /* ★서브 시도의 시도×코스는 지역 고유 내용이 적어 얇아진다. 그 시도에 든
+     행정동 이름을 그대로 깔아 쪽마다 다른 살을 붙인다(시군구 쪽에도 있는 목록이다). */
+  const subNames = [];
+  if (!sd.main) for (const g of sd.gu) {
+    for (const d of (g.dongNames || [])) subNames.push(`${g.name} ${d}`);
+    for (const m of (g.rural || [])) subNames.push(`${g.name} ${m.name}`);
+  }
+  /* ★한 시도의 코스 쪽 7~9장이 같은 이름 목록을 통째로 이고 있으면 그 덩어리 하나로
+     쪽끼리 겹침이 60%%를 넘는다. 쪽마다 시드로 다른 묶음을 보이고 전부는 시도 쪽에 둔다. */
+  const nameShow = subNames.length
+    ? shuffle(subNames, hash(seed, 'sn')).slice(0, Math.max(10, Math.round(subNames.length * 0.42)))
+    : [];
+  const namesBlock = nameShow.length
+    ? slab('sidodong', 'dong', `${esc(sd.name)}에 든 행정동 가운데 ${nameShow.length}곳`,
+        `<ul class="names">${nameShow.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>`
+        + `<p class="slab-x">${esc(sd.name)}에 든 행정동은 모두 ${subNames.length}곳입니다. <a href="/${sd.slug}/">${esc(sd.name)} 화면</a>에서 시군구별로 보실 수 있습니다.</p>`,
+        '이 지역은 시군구에서 층을 끊었습니다. 아래 이름을 통화에서 그대로 주시면 접수가 됩니다.', '03')
+    : '';
 
   const body = [
     open,
     facts,
     pingBand(cfg, `${sd.name} ${c.ko}`, seed),
     courseList(courses, seed, sd.name, '02', { full: false }),
+    namesBlock,
+    guIndex(sd, seed, null, '04', { pick: 14 }),
     faqHtml,
-    stepTrack(seed, '04'),
+    stepTrack(seed, '06'),
     topics,
   ].join('\n');
 

@@ -15,7 +15,8 @@ export function pickBy(arr, h, slot = 0) {
   return arr[hnum(h, slot) % arr.length];
 }
 /** 시드 고정 셔플 — 같은 URL 이면 같은 차례가 나온다. */
-export function shuffle(arr, h) {
+export function shuffle(arr, h0) {
+  const h = hash(h0, 'vitalityrub');
   const a = arr.slice();
   for (let i = a.length - 1, j = 0; i > 0; i--, j++) {
     const k = hnum(h, j) % (i + 1);

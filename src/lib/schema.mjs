@@ -148,6 +148,17 @@ export function collectionPage({ url, siteUrl, title, desc, listId }) {
   };
 }
 
+/** 소개 쪽 — 주체를 설명하는 쪽이라는 뜻을 따로 알린다. */
+export function aboutPage({ url, siteUrl, title, desc }) {
+  return {
+    '@type': 'AboutPage', '@id': `${url}#about`,
+    url, name: title, description: desc, inLanguage: 'ko-KR',
+    isPartOf: { '@id': `${siteUrl}/#site` },
+    mainEntity: { '@id': `${siteUrl}/#org` },
+    dateModified: '@@LM@@',
+  };
+}
+
 /** 값표 쪽 — 코스 전체를 하나의 가격대로 묶는다. */
 export function aggregateOffer(url, courses, cfg) {
   const prices = courses.map((c) => c.price);

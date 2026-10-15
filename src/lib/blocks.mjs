@@ -173,10 +173,20 @@ export function dongNameList(g, seedKey, num) {
 }
 
 /* ── 시도 안의 시군구 목록 ────────────────────────────────────── */
-export function guIndex(sd, seedKey, currentSlug, num) {
-  const items = sd.gu.map((g) => `<li${g.slug === currentSlug ? ' class="on"' : ''}><a href="/${sd.slug}/${g.slug}/"${g.slug === currentSlug ? ' aria-current="page"' : ''}><span class="p-n">${esc(g.name)}</span><span class="p-s">${esc(g.guAxisShort)} ${g.guRatio}</span></a></li>`).join('\n');
-  return slab('guidx', 'districts', `${esc(sd.name)} 아래 시군구 ${sd.gu.length}곳`,
-    `<ul class="plots">\n${items}\n</ul>`,
+export function guIndex(sd, seedKey, currentSlug, num, { pick = 0 } = {}) {
+  /* ★★동 쪽에서 시군구를 통째로 되풀이하면(경기는 47곳) 그 목록이 본문에서 가장 큰
+     덩어리가 되어 동 쪽끼리 겹침이 올라간다. 깊이 들어온 쪽에서는 시드로 고른 일부만
+     걸고 나머지는 시도 쪽으로 보낸다. */
+  let list = sd.gu;
+  if (pick && sd.gu.length > pick) {
+    const keep = new Set(shuffle(sd.gu.map((g) => g.slug), hash(seedKey, 'gi')).slice(0, pick));
+    if (currentSlug) keep.add(currentSlug);
+    list = sd.gu.filter((g) => keep.has(g.slug));
+  }
+  const items = list.map((g) => `<li${g.slug === currentSlug ? ' class="on"' : ''}><a href="/${sd.slug}/${g.slug}/"${g.slug === currentSlug ? ' aria-current="page"' : ''}><span class="p-n">${esc(g.name)}</span><span class="p-s">${esc(g.guAxisShort)} ${g.guRatio}</span></a></li>`).join('\n');
+  const partial = list.length < sd.gu.length;
+  return slab('guidx', 'districts', partial ? `${esc(sd.name)} 시군구 가운데 ${list.length}곳` : `${esc(sd.name)} 아래 시군구 ${sd.gu.length}곳`,
+    `<ul class="plots">\n${items}\n</ul>${partial ? `\n<p class="slab-x">${esc(sd.name)}의 시군구는 모두 ${sd.gu.length}곳입니다. <a href="/${sd.slug}/">${esc(sd.name)} 화면</a>에 전부 펼쳐 두었습니다.</p>` : ''}`,
     esc(at(hash(seedKey, 'gi'), SEC.guIdxSub)), num);
 }
 
@@ -186,7 +196,7 @@ export function kinList(sd, g, seedKey, num) {
   const items = g.kin.map((t) => `<li><a href="/${t.sidoSlug}/${t.slug}/"><span class="p-n">${esc(t.gu)}</span><span class="p-s">${t.diff}° · ${esc(t.axis)}</span></a></li>`).join('\n');
   return slab('kin2', 'alike', `${esc(g.name)}${josa(g.name, '과/와')} 누운 쪽이 닮은 시군구`,
     `<ul class="plots">\n${items}\n</ul>`,
-    `각도 차가 작은 차례입니다. ${esc(g.name)}의 결은 ${esc(g.guAxis)}이고, 결이 닮은 곳은 큰길이 나는 꼴도 비슷한 경우가 많습니다.`, num);
+    esc(at(hash(seedKey, 'kl'), SEC.nearSub)), num);
 }
 
 /* ── 아래쪽 안내 링크 (글·약관 등 얕은 쪽용) ─────────────────── */

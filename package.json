@@ -1,0 +1,15 @@
+{
+  "name": "vitalityrub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "바이탈리티럽 출장마사지 — 서울·인천·경기·부산 동 1,232곳과 지정 시군구 방문 안내 정적 사이트",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "node src/build.mjs",
+    "regions": "node --max-old-space-size=4096 scripts/build-regions.mjs",
+    "check": "node scripts/check.mjs",
+    "simil": "node scripts/simil.mjs",
+    "serve": "node scripts/serve.mjs"
+  }
+}
